@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Protected App</title>
+</head>
+<body>
+  <h1>Protected App</h1>
+  <p id="note">页面加载中…</p>
+
+  <!-- 搜索输入 -->
+  <input id="inputBox" placeholder="输入查询内容" />
+  <button id="searchBtn">Search</button>
+
+  <div id="status"></div>
+  <div id="error" style="color:#a00"></div>
+
+  <!-- 结果显示区 -->
+  <div id="resultArea"></div>
+  <div id="tableArea" style="margin-top:12px"></div>
+
+  <!-- 占位：Actions 会把真实值替换到这两个占位符 -->
+  <script>
+    const SUPABASE_URL = '__SUPABASE_URL__'
+    const SUPABASE_ANON = '__SUPABASE_ANON__'
+    console.log('模板页面已加载（占位 key）', SUPABASE_URL, SUPABASE_ANON)
+  </script>
+</body>
+</html>
