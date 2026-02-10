@@ -1,70 +1,40 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase RPC 函数调用演示</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- 引入Supabase客户端库 -->
+    <title>测试Supabase RPC</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>📡 Supabase RPC 函数调用演示</h1>
+    <h2>测试 RPC 函数</h2>
+    <button onclick="testRpc()">点击测试</button>
+    <pre id="output">结果将显示在这里...</pre>
+    
+    <script>
+        // ⚠️ 直接在这里填写你的配置 ⚠️
+        const SUPABASE_URL = 'https://dpaltfyvquazwxcwylwm.supabase.co';
+        const ANON_KEY = 'sb_publishable_h6RPugXK2sWtCOMeSR9qdA_AaeihNuj';
+        const FUNCTION_NAME = 'lookup_members';
         
-        <div class="config-section">
-            <h2>🔧 配置设置</h2>
-            <div class="form-group">
-                <label for="supabaseUrl">Supabase URL:</label>
-                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
-            </div>
-            <div class="form-group">
-                <label for="anonKey">匿名密钥 (anon key):</label>
-                <input type="password" id="anonKey" placeholder="eyJhbGciOiJIUzI1NiIs...">
-            </div>
-            <button onclick="initSupabase()">初始化客户端</button>
-            <div id="initStatus" class="status"></div>
-        </div>
-
-        <div class="rpc-section">
-            <h2>🚀 调用RPC函数</h2>
-            <div class="form-group">
-                <label for="functionName">函数名称:</label>
-                <input type="text" id="functionName" value="get_user_count" placeholder="例如：get_user_count">
-            </div>
-            <div class="form-group">
-                <label for="functionParams">参数 (JSON格式):</label>
-                <textarea id="functionParams" rows="3" placeholder='{"status": "active"}'></textarea>
-            </div>
-            <button onclick="callRpcFunction()">调用RPC函数</button>
+        async function testRpc() {
+            const output = document.getElementById('output');
+            output.textContent = '正在调用...';
             
-            <div class="result-section">
-                <h3>📊 执行结果</h3>
-                <div class="status-box">
-                    <div class="status-header">
-                        <span>状态: </span>
-                        <span id="statusText">等待调用...</span>
-                    </div>
-                    <pre id="resultOutput">{
-  "message": "这里将显示RPC函数的返回值"
-}</pre>
-                </div>
-            </div>
-        </div>
-
-        <div class="instructions">
-            <h2>📚 使用说明</h2>
-            <ol>
-                <li>从Supabase仪表板的 Settings > API 获取你的URL和匿名密钥</li>
-                <li>输入Supabase项目URL和匿名密钥</li>
-                <li>点击"初始化客户端"</li>
-                <li>输入要调用的RPC函数名称</li>
-                <li>如果需要参数，以JSON格式输入</li>
-                <li>点击"调用RPC函数"</li>
-            </ol>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, ANON_KEY);
+                const { data, error } = await supabase.rpc(FUNCTION_NAME);
+                
+                if (error) throw error;
+                
+                output.textContent = JSON.stringify(data, null, 2);
+                console.log('成功:', data);
+                
+            } catch (error) {
+                output.textContent = `错误: ${error.message}`;
+                console.error('失败:', error);
+            }
+        }
+        
+        console.log('配置:', { SUPABASE_URL, FUNCTION_NAME });
+    </script>
 </body>
 </html>
