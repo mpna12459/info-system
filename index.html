@@ -1,194 +1,70 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Lookup Members</title>
-  <style>
-    body{font-family:system-ui,Arial;max-width:980px;margin:20px auto;padding:16px}
-    input,button{padding:8px;margin:6px 0}
-    table{border-collapse:collapse;width:100%}
-    th,td{border:1px solid #ddd;padding:6px;text-align:left;vertical-align:top}
-    th{background:#f6f8fa}
-    .muted{color:#666}
-    .error{color:#a00}
-    .controls{display:flex;gap:8px;align-items:center}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase RPC 函数调用演示</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入Supabase客户端库 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <h1>Member Lookup</h1>
+    <div class="container">
+        <h1>📡 Supabase RPC 函数调用演示</h1>
+        
+        <div class="config-section">
+            <h2>🔧 配置设置</h2>
+            <div class="form-group">
+                <label for="supabaseUrl">Supabase URL:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+            </div>
+            <div class="form-group">
+                <label for="anonKey">匿名密钥 (anon key):</label>
+                <input type="password" id="anonKey" placeholder="eyJhbGciOiJIUzI1NiIs...">
+            </div>
+            <button onclick="initSupabase()">初始化客户端</button>
+            <div id="initStatus" class="status"></div>
+        </div>
 
-  <!--<div id="authBox">
-    <div style="margin-bottom:8px">使用邮箱登录（magic link）：</div>
-    <div class="controls">
-      <input id="email" type="email" placeholder="you@example.com" />
-      <button id="sendMagic">Send magic link</button>
-      <div id="authStatus" class="muted"></div>
+        <div class="rpc-section">
+            <h2>🚀 调用RPC函数</h2>
+            <div class="form-group">
+                <label for="functionName">函数名称:</label>
+                <input type="text" id="functionName" value="get_user_count" placeholder="例如：get_user_count">
+            </div>
+            <div class="form-group">
+                <label for="functionParams">参数 (JSON格式):</label>
+                <textarea id="functionParams" rows="3" placeholder='{"status": "active"}'></textarea>
+            </div>
+            <button onclick="callRpcFunction()">调用RPC函数</button>
+            
+            <div class="result-section">
+                <h3>📊 执行结果</h3>
+                <div class="status-box">
+                    <div class="status-header">
+                        <span>状态: </span>
+                        <span id="statusText">等待调用...</span>
+                    </div>
+                    <pre id="resultOutput">{
+  "message": "这里将显示RPC函数的返回值"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h2>📚 使用说明</h2>
+            <ol>
+                <li>从Supabase仪表板的 Settings > API 获取你的URL和匿名密钥</li>
+                <li>输入Supabase项目URL和匿名密钥</li>
+                <li>点击"初始化客户端"</li>
+                <li>输入要调用的RPC函数名称</li>
+                <li>如果需要参数，以JSON格式输入</li>
+                <li>点击"调用RPC函数"</li>
+            </ol>
+        </div>
     </div>
-  </div>
 
-  <div id="app" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div>
-        <strong id="userEmail"></strong>
-      </div>
-      <div>
-        <button id="signOut">Sign out</button>
-      </div>
-    </div> -->
-
-    <div class="card">
-      <div style="margin-bottom:8px">输入查询字符串（会传给 RPC 的参数 `info`）：</div>
-      <div class="controls">
-        <input id="q" placeholder="例如：王" style="flex:1" />
-        <button id="doSearch">Search</button>
-      </div>
-      <div id="status" class="muted" style="margin-top:6px"></div>
-      <div id="error" class="error" style="margin-top:6px"></div>
-    </div>
-
-    <pre id="rawOutput" style="margin-top:16px; background:#f6f8fa; padding:12px; border:1px solid #ddd;"></pre>
-    <div id="tableArea" style="margin-top:16px"></div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // === 请把下面两项替换为你的 Supabase 项目信息 ===
-    const SUPABASE_URL = 'https://dpaltfyvquazwxcwylwm.supabase.co'
-    const SUPABASE_ANON = 'sb_publishable_h6RPugXK2sWtCOMeSR9qdA_AaeihNuj'
-    // ===================================================
-
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
-
-    // UI refs
-    const authBox = document.getElementById('authBox')
-    const authStatus = document.getElementById('authStatus')
-    const emailInput = document.getElementById('email')
-    const sendMagic = document.getElementById('sendMagic')
-
-    const appDiv = document.getElementById('app')
-    const userEmailEl = document.getElementById('userEmail')
-    const signOut = document.getElementById('signOut')
-    const qInput = document.getElementById('q')
-    const doSearch = document.getElementById('doSearch')
-    const status = document.getElementById('status')
-    const errorDiv = document.getElementById('error')
-    const tableArea = document.getElementById('tableArea')
-
-    // helper: normalize responses (array / {data:[]} / object)
-    function normalizeRows(res) {
-      if (res == null) return []
-      if (Array.isArray(res)) return res
-      if (typeof res === 'object') {
-        if (Array.isArray(res.data)) return res.data
-        if (Array.isArray(res.rows)) return res.rows
-        for (const k of Object.keys(res)) if (Array.isArray(res[k])) return res[k]
-        return [res]
-      }
-      return [{ value: res }]
-    }
-
-    function renderTable(rows) {
-      tableArea.innerHTML = ''
-      if (!Array.isArray(rows) || rows.length === 0) {
-        tableArea.innerHTML = '<div class="muted">没有数据</div>'
-        return
-      }
-      const cols = Array.from(new Set(rows.flatMap(r => Object.keys(r))))
-      const table = document.createElement('table')
-      const thead = document.createElement('thead')
-      const trh = document.createElement('tr')
-      cols.forEach(c => { const th=document.createElement('th'); th.textContent=c; trh.appendChild(th) })
-      thead.appendChild(trh); table.appendChild(thead)
-      const tbody = document.createElement('tbody')
-      rows.forEach((r, idx) => {
-        const tr = document.createElement('tr')
-        if (idx % 2 === 1) tr.style.background = '#fafafa'
-        cols.forEach(c => {
-          const td = document.createElement('td')
-          let v = r[c]
-          if (v === null || v === undefined) v = ''
-          else if (typeof v === 'object') {
-            try { v = JSON.stringify(v) } catch(e) { v = String(v) }
-          } else v = String(v)
-          td.textContent = v
-          tr.appendChild(td)
-        })
-        tbody.appendChild(tr)
-      })
-      table.appendChild(tbody)
-      tableArea.appendChild(table)
-    }
-
-    // show/hide UI based on session
-    async function checkSessionOnLoad() {
-      const { data } = await supabase.auth.getSession()
-      const session = data.session
-      if (session && session.user) {
-        showApp(session.user)
-      } else {
-        showAuth()
-      }
-    }
-
-    function showAuth() {
-      authBox.style.display = 'block'
-      appDiv.style.display = 'none'
-    }
-    function showApp(user) {
-      authBox.style.display = 'none'
-      appDiv.style.display = 'block'
-      userEmailEl.textContent = user.email || user.id
-    }
-
-    // listen auth changes (logout in another tab etc.)
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && session.user) showApp(session.user)
-      else showAuth()
-    })
-
-    // magic link
-    sendMagic.onclick = async () => {
-      const email = emailInput.value.trim()
-      if (!email) { authStatus.textContent = '请输入邮箱'; return }
-      authStatus.textContent = 'Sending…'
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.origin + '/'} // 登录回本页
-      })
-      if (error) authStatus.textContent = 'Error: ' + error.message
-      else authStatus.textContent = '已发送魔法链接，请检查邮箱'
-    }
-
-    signOut.onclick = async () => {
-      await supabase.auth.signOut()
-      location.reload()
-    }
-
-    // Main: call your RPC lookup_members with param info
-    doSearch.onclick = async () => {
-      errorDiv.textContent = ''
-      status.textContent = 'Querying…'
-      tableArea.innerHTML = ''
-      const input = qInput.value.trim()
-      try {
-        // === RPC 调用（把 lookup_members 改成你的函数名 if 不同） ===
-        const { data, error } = await supabase.rpc('lookup_members', { info: input })
-        if (error) throw error
-
-        // 直接打印原始返回值
-        document.getElementById('rawOutput').textContent = JSON.stringify(data, null, 2)
-
-        status.textContent = 'Loaded (raw output)'
-      } catch (e) {
-        console.error(e)
-        status.textContent = ''
-        errorDiv.textContent = 'Error: ' + (e.message || e)
-      }
-    }
-
-    // init
-    checkSessionOnLoad()
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
